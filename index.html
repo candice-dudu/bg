@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>喵喵一鍵去背屋 Pro - 免費、本機 AI 圖片去背與影像創作工具</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- JSZip for batch downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* 棋盤格透明背景 */
+        .checkerboard-bg {
+            background-color: #f8fafc;
+            background-image: 
+                linear-gradient(45deg, #e2e8f0 25%, transparent 25%), 
+                linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #e2e8f0 75%), 
+                linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        /* 莫蘭迪柔和滾動條 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fff5f5;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fecdd3;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #fda4af;
+        }
+
+        /* 顏色選擇鈕動態樣式 */
+        .color-preset.active {
+            ring-width: 3px;
+            ring-color: #f43f5e;
+            transform: scale(1.1);
+        }
+
+        /* 自訂比較滑塊容器手勢 */
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+    </style>
+</head>
+<body class="bg-[#fcf8f6] text-gray-800 min-h-screen flex flex-col font-sans antialiased selection:bg-rose-100 selection:text-rose-600">
+
+    <!-- 頂部導航欄 -->
+    <header class="border-b border-rose-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-tr from-rose-400 to-pink-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-rose-200">
+                    <i data-lucide="cat" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-extrabold bg-gradient-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">喵喵一鍵去背屋</h1>
+                        <span class="text-[10px] font-bold px-2 py-0.5 bg-rose-100 text-rose-600 rounded-full uppercase tracking-wider">PRO 3.0</span>
+                    </div>
+                    <p class="text-xs text-gray-400">本機 AI 智慧去背 + 證件照背景替換 + 影音圖輯生成</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <span class="hidden md:flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-600 font-medium px-3 py-1.5 rounded-full border border-emerald-100">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    100% 本機端 GPU/CPU 運算（隱私無虞）
+                </span>
+                
+                <a href="https://github.com" target="_blank" class="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col items-center">
+        
+        <!-- 頂部標語與模式切換 -->
+        <div class="w-full flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+            <div>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+                    把圖片交給喵喵，<span class="text-rose-500 relative inline-block">
+                        極速發揮 AI 去背魔術
+                        <span class="absolute bottom-1 left-0 w-full h-2.5 bg-rose-100 -z-10 rounded-full"></span>
+                    </span> 🐾
+                </h2>
+                <p class="text-xs md:text-sm text-gray-500 mt-1">無需上傳伺服器，支援單圖創作編輯與批次快速去背。</p>
+            </div>
+
+            <!-- 單圖編輯 / 批次處理頁籤 -->
+            <div class="flex bg-gray-200/70 p-1 rounded-2xl w-full md:w-auto text-sm font-semibold">
+                <button id="tab-single" class="flex-1 md:flex-none px-5 py-2 rounded-xl bg-white text-rose-600 shadow-sm transition flex items-center justify-center gap-2">
+                    <i data-lucide="wand-2" class="w-4 h-4"></i>
+                    單圖精細編輯
+                </button>
+                <button id="tab-batch" class="flex-1 md:flex-none px-5 py-2 rounded-xl text-gray-600 hover:text-gray-900 transition flex items-center justify-center gap-2">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                    批次多圖去背
+                </button>
+            </div>
+        </div>
+
+        <!-- ======================= 單圖創作工作區 ======================= -->
+        <section id="single-editor-view" class="w-full flex flex-col gap-6">
+            
+            <!-- 1. 拖曳上傳卡片 -->
+            <div id="drop-zone" class="relative border-2 border-dashed border-rose-200 hover:border-rose-400 bg-rose-50/20 hover:bg-rose-50/50 rounded-3xl p-8 text-center transition-all duration-300 flex flex-col items-center justify-center min-h-[380px] shadow-sm overflow-hidden group">
+                <input type="file" id="file-input" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-30" accept="image/*">
+                
+                <div class="w-20 h-20 bg-rose-100/80 group-hover:scale-110 rounded-3xl flex items-center justify-center text-rose-500 mb-4 transition-transform duration-300 shadow-inner">
+                    <i data-lucide="image-plus" class="w-10 h-10"></i>
+                </div>
+                
+                <h3 class="text-xl font-bold text-gray-800 mb-2 pointer-events-none">拖曳圖片到這裡，或點擊選取圖片</h3>
+                <p class="text-xs text-gray-400 mb-6 pointer-events-none max-w-md">支援高解析度 JPG, PNG, WEBP 等格式，全部在您的電腦瀏覽器內去背</p>
+                
+                <div class="flex flex-wrap items-center justify-center gap-3 pointer-events-none">
+                    <button type="button" class="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-2xl shadow-lg shadow-rose-200 flex items-center gap-2">
+                        <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                        選擇照片開始去背
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. AI 運算載入中狀態 -->
+            <div id="loading-zone" class="hidden bg-white rounded-3xl border border-rose-100 shadow-xl p-10 flex-col items-center justify-center text-center min-h-[380px]">
+                <div class="relative w-28 h-28 mb-6">
+                    <div class="absolute inset-0 bg-rose-100 rounded-full animate-ping opacity-60"></div>
+                    <div class="relative w-28 h-28 bg-gradient-to-tr from-rose-100 to-pink-100 rounded-full flex items-center justify-center text-rose-500 shadow-inner">
+                        <i data-lucide="sparkles" class="w-12 h-12 animate-spin text-rose-500" style="animation-duration: 4s;"></i>
+                    </div>
+                </div>
+
+                <h3 id="loading-status" class="text-xl font-bold text-gray-800 mb-2">正在啟動喵喵 AI 引擎...</h3>
+                <p id="loading-hint" class="text-xs text-rose-600 bg-rose-50 px-4 py-2 rounded-full mb-6 font-medium animate-pulse border border-rose-100">
+                    💡 首次啟動會下載約 40MB 的 AI 卷積神經網路模型，會自動快取，下次秒速開工！
+                </p>
+
+                <!-- 進度條 -->
+                <div class="w-full max-w-md bg-gray-100 h-3.5 rounded-full overflow-hidden mb-2 p-0.5 border border-gray-200">
+                    <div id="progress-bar" class="bg-gradient-to-r from-rose-500 to-pink-500 h-full w-0 rounded-full transition-all duration-300"></div>
+                </div>
+                <span id="progress-text" class="text-sm font-bold text-gray-600">0%</span>
+            </div>
+
+            <!-- 3. 高級圖像創作工作台 (結果區) -->
+            <div id="result-zone" class="hidden flex-col lg:flex-row gap-6 items-start">
+                
+                <!-- 左側：主圖畫布與拉桿對比 -->
+                <div class="w-full lg:w-2/3 bg-white rounded-3xl border border-rose-100 shadow-xl p-4 sm:p-6 flex flex-col gap-4">
+                    
+                    <!-- 頂部快控列 -->
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <button id="btn-reupload" class="px-3.5 py-1.5 bg-gray-100 hover:bg-rose-50 text-gray-700 hover:text-rose-600 rounded-xl font-medium text-xs transition flex items-center gap-1.5">
+                                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                                換一張圖
+                            </button>
+                            <span class="text-xs font-semibold text-gray-400 hidden sm:inline" id="file-info-text">image.jpg</span>
+                        </div>
+
+                        <!-- 模式切換：拉桿對比 / 最終結果 preview -->
+                        <div class="flex bg-gray-100 p-1 rounded-xl text-xs font-bold">
+                            <button id="view-mode-slider" class="px-3 py-1 rounded-lg bg-white text-rose-600 shadow-sm transition">
+                                ↔️ 滑塊對比
+                            </button>
+                            <button id="view-mode-result" class="px-3 py-1 rounded-lg text-gray-500 hover:text-gray-800 transition">
+                                🎨 背景合成畫布
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 畫布與比較拖拽區塊 -->
+                    <div class="relative w-full h-[380px] sm:h-[460px] rounded-2xl overflow-hidden flex items-center justify-center checkerboard-bg border border-gray-200 no-select" id="canvas-container">
+                        
+                        <!-- 模式 A：互動式拉桿對比視圖 -->
+                        <div id="slider-view-wrapper" class="absolute inset-0 w-full h-full">
+                            <!-- 底部：去背透明圖 (或套用背景的圖) -->
+                            <img id="slider-img-after" class="absolute inset-0 w-full h-full object-contain pointer-events-none z-10" alt="去背後">
+                            
+                            <!-- 頂部：原始圖片 (會被剪裁 clip-path) -->
+                            <div id="slider-before-overlay" class="absolute inset-0 w-full h-full overflow-hidden z-20" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
+                                <img id="slider-img-before" class="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="去背前原圖">
+                            </div>
+
+                            <!-- 分割線拉桿條 -->
+                            <div id="slider-handle" class="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize z-30 shadow-2xl flex items-center justify-center" style="left: 50%;">
+                                <div class="w-8 h-8 bg-white text-rose-500 rounded-full shadow-lg border border-rose-100 flex items-center justify-center text-xs font-bold">
+                                    <i data-lucide="chevrons-left-right" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模式 B：繪製合成結果之 Canvas -->
+                        <canvas id="export-canvas" class="hidden max-w-full max-h-full object-contain z-10 drop-shadow-md"></canvas>
+                    </div>
+
+                    <!-- 提示文字 -->
+                    <p class="text-center text-xs text-gray-400">
+                        💡 提示：按住並拖動圖像上的白線拉桿，可精細對比邊緣細節
+                    </p>
+                </div>
+
+                <!-- 右側：強大控制面板 (背景、貼紙光暈、證件照尺寸) -->
+                <div class="w-full lg:w-1/3 bg-white rounded-3xl border border-rose-100 shadow-xl p-6 flex flex-col gap-6">
+                    
+                    <h3 class="font-bold text-base text-gray-900 flex items-center gap-2 pb-3 border-b border-gray-100">
+                        <i data-lucide="sliders" class="w-5 h-5 text-rose-500"></i>
+                        影像風格與背景設定
+                    </h3>
+
+                    <!-- 1. 背景替換選擇器 -->
+                    <div class="flex flex-col gap-2.5">
+                        <label class="text-xs font-bold text-gray-600 flex justify-between items-center">
+                            <span>1. 背景樣式 (Background)</span>
+                            <span id="bg-type-label" class="text-[11px] text-rose-500 font-normal">棋盤格透明</span>
+                        </label>
+                        
+                        <div class="grid grid-cols-5 gap-2">
+                            <!-- 透明 (預設) -->
+                            <button class="color-preset active w-full h-10 rounded-xl border border-gray-300 checkerboard-bg transition flex items-center justify-center" data-bg="transparent" title="透明背景"></button>
+                            <!-- 純白 -->
+                            <button class="color-preset w-full h-10 rounded-xl border border-gray-200 bg-white transition" data-bg="#ffffff" title="純白色"></button>
+                            <!-- 證件藍 -->
+                            <button class="color-preset w-full h-10 rounded-xl border border-blue-200 bg-[#438edb] transition" data-bg="#438edb" title="證件照藍"></button>
+                            <!-- 證件紅 -->
+                            <button class="color-preset w-full h-10 rounded-xl border border-red-200 bg-[#e71f19] transition" data-bg="#e71f19" title="證件照紅"></button>
+                            <!-- 質感柔粉 -->
+                            <button class="color-preset w-full h-10 rounded-xl border border-pink-200 bg-[#fde2e4] transition" data-bg="#fde2e4" title="柔粉色"></button>
+                        </div>
+
+                        <div class="flex items-center gap-2 mt-1">
+                            <!-- 自訂顏色選擇器 -->
+                            <div class="flex-1 flex items-center gap-2 border border-gray-200 rounded-xl p-1.5 bg-gray-50">
+                                <input type="color" id="custom-color-picker" class="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent" value="#ffffff">
+                                <span class="text-xs font-medium text-gray-600">自訂調色盤</span>
+                            </div>
+                            
+                            <!-- 上傳背景圖 -->
+                            <label class="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-rose-300 hover:bg-rose-50 rounded-xl p-2 cursor-pointer text-xs font-semibold text-rose-600 transition">
+                                <i data-lucide="image" class="w-4 h-4"></i>
+                                <span>上傳背景圖</span>
+                                <input type="file" id="bg-file-input" class="hidden" accept="image/*">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 2. 立體陰影與邊框白暈 (適合電商 & 貼紙頭像) -->
+                    <div class="flex flex-col gap-3 pt-2 border-t border-gray-100">
+                        <label class="text-xs font-bold text-gray-600 flex justify-between items-center">
+                            <span>2. 主體視覺特效</span>
+                        </label>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- 立體懸浮陰影 -->
+                            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 bg-gray-50/50 cursor-pointer hover:border-rose-300 transition">
+                                <input type="checkbox" id="toggle-shadow" class="w-4 h-4 accent-rose-500 rounded">
+                                <span class="text-xs font-medium text-gray-700">懸浮商品陰影</span>
+                            </label>
+
+                            <!-- 可愛貼紙外白邊 -->
+                            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 bg-gray-50/50 cursor-pointer hover:border-rose-300 transition">
+                                <input type="checkbox" id="toggle-stroke" class="w-4 h-4 accent-rose-500 rounded">
+                                <span class="text-xs font-medium text-gray-700">描邊白光圈</span>
+                            </label>
+                        </div>
+
+                        <!-- 邊緣羽化調整 -->
+                        <div class="flex flex-col gap-1.5 mt-1">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>邊緣平滑羽化 (Edge Smooth)</span>
+                                <span id="feather-val-text">0 px</span>
+                            </div>
+                            <input type="range" id="feather-range" min="0" max="10" value="0" class="w-full accent-rose-500 h-1.5 bg-gray-200 rounded-lg cursor-pointer">
+                        </div>
+                    </div>
+
+                    <!-- 3. 輸出尺寸與比例 -->
+                    <div class="flex flex-col gap-2.5 pt-2 border-t border-gray-100">
+                        <label class="text-xs font-bold text-gray-600">3. 裁切與輸出尺寸</label>
+                        <select id="aspect-ratio-select" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold rounded-xl p-2.5 focus:ring-2 focus:ring-rose-400 focus:outline-none">
+                            <option value="original">原始比例 (Original)</option>
+                            <option value="1:1">1 : 1 (正方形頭像 / 社群貼文)</option>
+                            <option value="4:3">4 : 3 (標準電商商品圖)</option>
+                            <option value="3:4">3 : 4 (標準證件照直式)</option>
+                        </select>
+                    </div>
+
+                    <!-- 下載按鈕組 -->
+                    <div class="flex flex-col gap-2 pt-2">
+                        <button id="btn-download" class="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-extrabold rounded-2xl shadow-lg shadow-rose-200 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                            <i data-lucide="download" class="w-5 h-5"></i>
+                            下載高畫質 PNG 檔
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- ======================= 批次處理工作區 ======================= -->
+        <section id="batch-editor-view" class="w-full hidden flex-col gap-6">
+            <div id="batch-drop-zone" class="relative border-2 border-dashed border-rose-200 hover:border-rose-400 bg-rose-50/20 hover:bg-rose-50/50 rounded-3xl p-8 text-center transition-all duration-300 flex flex-col items-center justify-center min-h-[220px] shadow-sm overflow-hidden">
+                <input type="file" id="batch-file-input" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-30" accept="image/*" multiple>
+                <div class="w-14 h-14 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-500 mb-3">
+                    <i data-lucide="files" class="w-7 h-7"></i>
+                </div>
+                <h3 class="text-base font-bold text-gray-800 mb-1">一次拖拽多張圖片進行批次去背</h3>
+                <p class="text-xs text-gray-400">點擊或拖放多檔，自動依序處理解鎖並一次打包下載 ZIP</p>
+            </div>
+
+            <!-- 批次清單與進度列表 -->
+            <div id="batch-container" class="hidden bg-white rounded-3xl border border-rose-100 p-6 shadow-xl flex-col gap-4">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <div>
+                        <h3 class="font-bold text-gray-800 text-sm">批次處理清單</h3>
+                        <p id="batch-summary-text" class="text-xs text-gray-400">已選取 0 張照片</p>
+                    </div>
+                    <button id="btn-batch-download-zip" disabled class="px-5 py-2.5 bg-rose-500 opacity-50 cursor-not-allowed text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition">
+                        <i data-lucide="archive" class="w-4 h-4"></i>
+                        打包下載 ZIP 檔
+                    </button>
+                </div>
+
+                <!-- 檔案列表項 -->
+                <div id="batch-file-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2">
+                    <!-- JS 動態插入 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 錯誤彈窗 -->
+        <div id="error-toast" class="fixed bottom-6 right-6 bg-rose-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none z-50 border border-rose-700">
+            <i data-lucide="alert-triangle" class="text-amber-400 w-5 h-5"></i>
+            <div>
+                <p class="font-bold text-xs">注意喵！</p>
+                <p id="error-message" class="text-xs text-rose-200">無法處理這張圖片</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 核心 JS 模組 -->
+    <script type="module">
+        import imglyRemoveBackground, { removeBackground as removeBgNamed } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
+        const removeBackground = imglyRemoveBackground || removeBgNamed;
+
+        // DOM 元素引用
+        const tabSingle = document.getElementById('tab-single');
+        const tabBatch = document.getElementById('tab-batch');
+        const singleView = document.getElementById('single-editor-view');
+        const batchView = document.getElementById('batch-editor-view');
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const loadingZone = document.getElementById('loading-zone');
+        const resultZone = document.getElementById('result-zone');
+
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingHint = document.getElementById('loading-hint');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+
+        const sliderViewWrapper = document.getElementById('slider-view-wrapper');
+        const sliderBeforeOverlay = document.getElementById('slider-before-overlay');
+        const sliderHandle = document.getElementById('slider-handle');
+        const sliderImgBefore = document.getElementById('slider-img-before');
+        const sliderImgAfter = document.getElementById('slider-img-after');
+
+        const exportCanvas = document.getElementById('export-canvas');
+        const viewModeSlider = document.getElementById('view-mode-slider');
+        const viewModeResult = document.getElementById('view-mode-result');
+
+        const bgTypeLabel = document.getElementById('bg-type-label');
+        const customColorPicker = document.getElementById('custom-color-picker');
+        const bgFileInput = document.getElementById('bg-file-input');
+        const toggleShadow = document.getElementById('toggle-shadow');
+        const toggleStroke = document.getElementById('toggle-stroke');
+        const featherRange = document.getElementById('feather-range');
+        const featherValText = document.getElementById('feather-val-text');
+        const aspectRatioSelect = document.getElementById('aspect-ratio-select');
+
+        const btnReupload = document.getElementById('btn-reupload');
+        const btnDownload = document.getElementById('btn-download');
+        const fileInfoText = document.getElementById('file-info-text');
+
+        const errorToast = document.getElementById('error-toast');
+        const errorMessage = document.getElementById('error-message');
+
+        // 全域狀態變數
+        let currentOriginalImg = null; // HTMLImageElement
+        let currentCutoutImg = null;   // HTMLImageElement
+        let customBgImg = null;       // HTMLImageElement for background
+        let isModelCached = false;
+        let originalFileName = "meow_bg";
+
+        // 當前編輯風格參數
+        let state = {
+            bgType: 'transparent', // 'transparent', hex color, or 'image'
+            shadow: false,
+            stroke: false,
+            feather: 0,
+            aspectRatio: 'original',
+            viewMode: 'slider' // 'slider' or 'result'
+        };
+
+        // 初始化圖標
+        lucide.createIcons();
+
+        // 頁籤切換
+        tabSingle.addEventListener('click', () => {
+            tabSingle.classList.add('bg-white', 'text-rose-600', 'shadow-sm');
+            tabSingle.classList.remove('text-gray-600');
+            tabBatch.classList.remove('bg-white', 'text-rose-600', 'shadow-sm');
+            tabBatch.classList.add('text-gray-600');
+
+            singleView.classList.remove('hidden');
+            batchView.classList.add('hidden');
+        });
+
+        tabBatch.addEventListener('click', () => {
+            tabBatch.classList.add('bg-white', 'text-rose-600', 'shadow-sm');
+            tabBatch.classList.remove('text-gray-600');
+            tabSingle.classList.remove('bg-white', 'text-rose-600', 'shadow-sm');
+            tabSingle.classList.add('text-gray-600');
+
+            batchView.classList.remove('hidden');
+            singleView.classList.add('hidden');
+        });
+
+        // 檔案上傳觸發
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                processSingleImage(e.target.files[0]);
+            }
+        });
+
+        // 單圖 AI 去背處理邏輯
+        async function processSingleImage(file) {
+            if (!file.type.startsWith('image/')) {
+                showError("上傳的檔案不是圖片哦！");
+                fileInput.value = "";
+                return;
+            }
+
+            originalFileName = file.name.split('.').slice(0, -1).join('.') || "meow_bg";
+            fileInfoText.innerText = `${file.name} (${(file.size / (1024*1024)).toFixed(1)}MB)`;
+
+            // 切換 UI 至 Loading
+            dropZone.classList.add('hidden');
+            resultZone.classList.add('hidden');
+            loadingZone.classList.remove('hidden');
+            loadingZone.classList.add('flex');
+
+            // 預載入原始圖片
+            const originalUrl = URL.createObjectURL(file);
+            currentOriginalImg = new Image();
+            currentOriginalImg.src = originalUrl;
+            await currentOriginalImg.decode();
+
+            sliderImgBefore.src = originalUrl;
+
+            // 準備執行 AI
+            progressBar.style.width = '0%';
+            progressText.innerText = '0%';
+            loadingStatus.innerText = isModelCached ? "正在精細去背分割中..." : "正在下載 AI 去背神經網路模型...";
+            
+            if (isModelCached) loadingHint.classList.add('hidden');
+            else loadingHint.classList.remove('hidden');
+
+            try {
+                // 呼叫 WASM 引擎
+                const imageBlob = await removeBackground(file, {
+                    publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.5.5/dist/',
+                    progress: (key, current, total) => {
+                        let percent = 0;
+                        if (total && total > 0) percent = Math.round((current / total) * 100);
+                        progressBar.style.width = `${percent}%`;
+                        progressText.innerText = `${percent}%`;
+                        
+                        if (typeof key === 'string' && key.includes('compute')) {
+                            isModelCached = true;
+                        }
+                    }
+                });
+
+                // 載入去背結果圖
+                const cutoutUrl = URL.createObjectURL(imageBlob);
+                currentCutoutImg = new Image();
+                currentCutoutImg.src = cutoutUrl;
+                await currentCutoutImg.decode();
+
+                sliderImgAfter.src = cutoutUrl;
+
+                // 完成，顯示創作工作台
+                loadingZone.classList.add('hidden');
+                loadingZone.classList.remove('flex');
+                resultZone.classList.remove('hidden');
+                resultZone.classList.add('flex');
+
+                // 重新刷新 Canvas 繪製
+                renderCanvas();
+
+            } catch (err) {
+                console.error(err);
+                showError("去背失敗！可能是記憶體不足或圖片格式異常。");
+                resetSingleView();
+            }
+        }
+
+        // 互動式拉桿 slider 拖拽邏輯
+        let isDraggingSlider = false;
+        const sliderContainer = document.getElementById('canvas-container');
+
+        function updateSliderPosition(clientX) {
+            const rect = sliderContainer.getBoundingClientRect();
+            let x = clientX - rect.left;
+            if (x < 0) x = 0;
+            if (x > rect.width) x = rect.width;
+            
+            const percentage = (x / rect.width) * 100;
+            sliderBeforeOverlay.style.clipPath = `polygon(0 0, ${percentage}% 0, ${percentage}% 100%, 0 100%)`;
+            sliderHandle.style.left = `${percentage}%`;
+        }
+
+        sliderContainer.addEventListener('mousedown', (e) => {
+            if (state.viewMode === 'slider') {
+                isDraggingSlider = true;
+                updateSliderPosition(e.clientX);
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDraggingSlider) updateSliderPosition(e.clientX);
+        });
+
+        window.addEventListener('mouseup', () => { isDraggingSlider = false; });
+
+        // Touch event support for mobile screens
+        sliderContainer.addEventListener('touchstart', (e) => {
+            if (state.viewMode === 'slider' && e.touches.length > 0) {
+                isDraggingSlider = true;
+                updateSliderPosition(e.touches[0].clientX);
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (isDraggingSlider && e.touches.length > 0) {
+                updateSliderPosition(e.touches[0].clientX);
+            }
+        });
+
+        window.addEventListener('touchend', () => { isDraggingSlider = false; });
+
+        // 視圖切換 (滑塊對比 vs 背景合成 Canvas)
+        viewModeSlider.addEventListener('click', () => {
+            state.viewMode = 'slider';
+            viewModeSlider.classList.add('bg-white', 'text-rose-600', 'shadow-sm');
+            viewModeSlider.classList.remove('text-gray-500');
+            viewModeResult.classList.remove('bg-white', 'text-rose-600', 'shadow-sm');
+            viewModeResult.classList.add('text-gray-500');
+
+            sliderViewWrapper.classList.remove('hidden');
+            exportCanvas.classList.add('hidden');
+        });
+
+        viewModeResult.addEventListener('click', () => {
+            state.viewMode = 'result';
+            viewModeResult.classList.add('bg-white', 'text-rose-600', 'shadow-sm');
+            viewModeResult.classList.remove('text-gray-500');
+            viewModeSlider.classList.remove('bg-white', 'text-rose-600', 'shadow-sm');
+            viewModeSlider.classList.add('text-gray-500');
+
+            sliderViewWrapper.classList.add('hidden');
+            exportCanvas.classList.remove('hidden');
+            renderCanvas();
+        });
+
+        // 核心 HTML5 Canvas 渲染函數
+        function renderCanvas() {
+            if (!currentCutoutImg) return;
+
+            const ctx = exportCanvas.getContext('2d');
+            const origW = currentCutoutImg.naturalWidth;
+            const origH = currentCutoutImg.naturalHeight;
+
+            // 計算目標寬高 (根據 Aspect Ratio 選項)
+            let targetW = origW;
+            let targetH = origH;
+
+            if (state.aspectRatio === '1:1') {
+                const side = Math.max(origW, origH);
+                targetW = side;
+                targetH = side;
+            } else if (state.aspectRatio === '4:3') {
+                targetW = origW;
+                targetH = Math.round(origW * (3 / 4));
+                if (targetH < origH) {
+                    targetH = origH;
+                    targetW = Math.round(origH * (4 / 3));
+                }
+            } else if (state.aspectRatio === '3:4') {
+                targetW = origW;
+                targetH = Math.round(origW * (4 / 3));
+                if (targetH < origH) {
+                    targetH = origH;
+                    targetW = Math.round(origH * (3 / 4));
+                }
+            }
+
+            exportCanvas.width = targetW;
+            exportCanvas.height = targetH;
+
+            // 1. 清空畫布
+            ctx.clearRect(0, 0, targetW, targetH);
+
+            // 2. 繪製背景 (Background)
+            if (state.bgType === 'transparent') {
+                // 不繪製底色，維持透明
+            } else if (state.bgType === 'image' && customBgImg) {
+                // 畫自訂背景圖
+                ctx.drawImage(customBgImg, 0, 0, targetW, targetH);
+            } else {
+                // 繪製純色底色
+                ctx.fillStyle = state.bgType;
+                ctx.fillRect(0, 0, targetW, targetH);
+            }
+
+            // 3. 計算去背主體放置中心點
+            const dx = (targetW - origW) / 2;
+            const dy = (targetH - origH) / 2;
+
+            // 4. 繪製立體懸浮陰影 (Drop Shadow)
+            if (state.shadow) {
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+                ctx.shadowBlur = 25;
+                ctx.shadowOffsetX = 10;
+                ctx.shadowOffsetY = 15;
+                ctx.drawImage(currentCutoutImg, dx, dy, origW, origH);
+                ctx.restore();
+            }
+
+            // 5. 繪製可愛邊框白光圈 (Sticker Stroke)
+            if (state.stroke) {
+                ctx.save();
+                const strokeSize = Math.max(4, Math.round(origW * 0.015));
+                for (let angle = 0; angle < 360; angle += 45) {
+                    const rad = (angle * Math.PI) / 180;
+                    const sx = dx + Math.cos(rad) * strokeSize;
+                    const sy = dy + Math.sin(rad) * strokeSize;
+                    ctx.drawImage(currentCutoutImg, sx, sy, origW, origH);
+                }
+                ctx.restore();
+            }
+
+            // 6. 繪製羽化與主體
+            ctx.save();
+            if (state.feather > 0) {
+                ctx.filter = `blur(${state.feather}px)`;
+            }
+            ctx.drawImage(currentCutoutImg, dx, dy, origW, origH);
+            ctx.restore();
+
+            // 如果在滑塊視圖，同步替換右側 After 圖
+            if (state.bgType !== 'transparent' || state.shadow || state.stroke) {
+                sliderImgAfter.src = exportCanvas.toDataURL('image/png');
+            } else {
+                sliderImgAfter.src = currentCutoutImg.src;
+            }
+        }
+
+        // 背景控制項目綁定
+        document.querySelectorAll('.color-preset').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active'));
+                const target = e.currentTarget;
+                target.classList.add('active');
+
+                state.bgType = target.dataset.bg;
+                if (state.bgType === 'transparent') bgTypeLabel.innerText = "棋盤格透明";
+                else bgTypeLabel.innerText = "純色背景";
+
+                renderCanvas();
+            });
+        });
+
+        customColorPicker.addEventListener('input', (e) => {
+            document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active'));
+            state.bgType = e.target.value;
+            bgTypeLabel.innerText = `自訂色 (${e.target.value})`;
+            renderCanvas();
+        });
+
+        bgFileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    customBgImg = new Image();
+                    customBgImg.onload = () => {
+                        state.bgType = 'image';
+                        bgTypeLabel.innerText = "自訂背景圖";
+                        renderCanvas();
+                    };
+                    customBgImg.src = event.target.result;
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        toggleShadow.addEventListener('change', (e) => {
+            state.shadow = e.target.checked;
+            renderCanvas();
+        });
+
+        toggleStroke.addEventListener('change', (e) => {
+            state.stroke = e.target.checked;
+            renderCanvas();
+        });
+
+        featherRange.addEventListener('input', (e) => {
+            state.feather = parseInt(e.target.value);
+            featherValText.innerText = `${state.feather} px`;
+            renderCanvas();
+        });
+
+        aspectRatioSelect.addEventListener('change', (e) => {
+            state.aspectRatio = e.target.value;
+            renderCanvas();
+        });
+
+        // 下載單圖功能
+        btnDownload.addEventListener('click', () => {
+            renderCanvas();
+            const dataUrl = exportCanvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `${originalFileName}_meowbg.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        btnReupload.addEventListener('click', resetSingleView);
+
+        function resetSingleView() {
+            fileInput.value = "";
+            resultZone.classList.add('hidden');
+            loadingZone.classList.add('hidden');
+            dropZone.classList.remove('hidden');
+        }
+
+        // ======================= 批次多圖去背邏輯 =======================
+        const batchFileInput = document.getElementById('batch-file-input');
+        const batchContainer = document.getElementById('batch-container');
+        const batchFileList = document.getElementById('batch-file-list');
+        const batchSummaryText = document.getElementById('batch-summary-text');
+        const btnBatchDownloadZip = document.getElementById('btn-batch-download-zip');
+
+        let batchItems = []; // { file, status, processedBlob, id }
+
+        batchFileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                initBatchProcess(Array.from(e.target.files));
+            }
+        });
+
+        async function initBatchProcess(files) {
+            const validFiles = files.filter(f => f.type.startsWith('image/'));
+            if (validFiles.length === 0) return;
+
+            batchItems = validFiles.map((file, index) => ({
+                id: index,
+                file: file,
+                status: 'pending', // 'pending', 'processing', 'done', 'error'
+                processedBlob: null
+            }));
+
+            batchContainer.classList.remove('hidden');
+            batchContainer.classList.add('flex');
+            batchSummaryText.innerText = `準備處理 ${batchItems.length} 張照片`;
+            renderBatchListUI();
+
+            // 開始隊列執行
+            for (let item of batchItems) {
+                item.status = 'processing';
+                renderBatchListUI();
+
+                try {
+                    const blob = await removeBackground(item.file, {
+                        publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.5.5/dist/'
+                    });
+                    item.processedBlob = blob;
+                    item.status = 'done';
+                } catch (err) {
+                    console.error(err);
+                    item.status = 'error';
+                }
+                renderBatchListUI();
+            }
+
+            // 檢查是否全部完成
+            const doneCount = batchItems.filter(i => i.status === 'done').length;
+            if (doneCount > 0) {
+                btnBatchDownloadZip.disabled = false;
+                btnBatchDownloadZip.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function renderBatchListUI() {
+            batchFileList.innerHTML = batchItems.map(item => `
+                <div class="flex items-center justify-between p-3 rounded-2xl border ${item.status === 'done' ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200 bg-gray-50'}">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs shrink-0">
+                            ${item.file.name.split('.').pop().toUpperCase()}
+                        </div>
+                        <div class="truncate">
+                            <p class="text-xs font-bold text-gray-800 truncate">${item.file.name}</p>
+                            <p class="text-[10px] text-gray-400">${(item.file.size/1024).toFixed(0)} KB</p>
+                        </div>
+                    </div>
+
+                    <div class="shrink-0">
+                        ${item.status === 'pending' ? '<span class="text-xs text-gray-400 font-medium">排隊中...</span>' : ''}
+                        ${item.status === 'processing' ? '<span class="text-xs text-rose-500 font-bold animate-pulse flex items-center gap-1"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> 去背中</span>' : ''}
+                        ${item.status === 'done' ? '<span class="text-xs text-emerald-600 font-bold flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> 完成</span>' : ''}
+                        ${item.status === 'error' ? '<span class="text-xs text-rose-600 font-bold">失敗</span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // 打包 ZIP 下載
+        btnBatchDownloadZip.addEventListener('click', async () => {
+            if (typeof JSZip === 'undefined') {
+                showError("壓縮庫加載中，請稍微重試！");
+                return;
+            }
+
+            const zip = new JSZip();
+            batchItems.forEach(item => {
+                if (item.status === 'done' && item.processedBlob) {
+                    const name = item.file.name.split('.').slice(0, -1).join('.') || 'image';
+                    zip.file(`${name}_meowbg.png`, item.processedBlob);
+                }
+            });
+
+            const content = await zip.generateAsync({ type: 'blob' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `meow_bg_batch_${Date.now()}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // 通用錯誤提示
+        function showError(msg) {
+            errorMessage.innerText = msg;
+            errorToast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+            errorToast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                errorToast.classList.remove('translate-y-0', 'opacity-100');
+                errorToast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
