@@ -89,11 +89,10 @@
             <div>
                 <h2 class="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
                     把圖片交給喵喵，<span class="text-rose-500 relative inline-block">
-                        極速發揮 AI 去背魔術
+                       發揮去背魔術
                         <span class="absolute bottom-1 left-0 w-full h-2.5 bg-rose-100 -z-10 rounded-full"></span>
                     </span> 🐾
                 </h2>
-                <p class="text-xs md:text-sm text-gray-500 mt-1">無需上傳伺服器，GitHub Pages 或本機打開皆可 100% 順暢運作。</p>
             </div>
 
             <div class="flex bg-gray-200/70 p-1 rounded-2xl w-full md:w-auto text-sm font-semibold">
@@ -582,7 +581,7 @@
                     const imgly = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm');
                     const removeBgFunc = imgly.default || imgly.removeBackground;
 
-                    loadingStatus.innerText = "AI 神經網路計算中...";
+                    loadingStatus.innerText = "AI 計算中...";
                     resultBlob = await removeBgFunc(file, {
                         publicPath: 'https://staticimgly.com/@imgly/background-removal-data/1.5.5/dist/',
                         progress: (key, current, total) => {
