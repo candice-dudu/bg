@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>喵喵一鍵去背屋</title>
+    <title>喵喵一鍵去背屋 Pro</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons CDN -->
@@ -62,9 +62,9 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-extrabold bg-gradient-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">喵喵一鍵去背屋</h1>
-                        <span class="text-[10px] font-bold px-2 py-0.5 bg-rose-100 text-rose-600 rounded-full uppercase tracking-wider">PRO 3.8</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 bg-rose-100 text-rose-600 rounded-full uppercase tracking-wider">PRO 4.0 旗艦版</span>
                     </div>
-                    <p class="text-xs text-gray-400">100% 本機端 AI 去背 + 雙引擎自動備援 + 魔術棒點選去背</p>
+                    <p class="text-xs text-gray-400">100% 本機端 AI 去背 + 雙引擎自動備援 + 智慧剪貼簿/置中</p>
                 </div>
             </div>
             
@@ -89,11 +89,11 @@
             <div>
                 <h2 class="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
                     把圖片交給喵喵，<span class="text-rose-500 relative inline-block">
-                        發揮去背魔術
+                        極速發揮 AI 去背魔術
                         <span class="absolute bottom-1 left-0 w-full h-2.5 bg-rose-100 -z-10 rounded-full"></span>
                     </span> 🐾
                 </h2>
-              
+                <p class="text-xs md:text-sm text-gray-500 mt-1">無需上傳伺服器，GitHub Pages 或本機打開皆可 100% 順暢運作。</p>
             </div>
 
             <div class="flex bg-gray-200/70 p-1 rounded-2xl w-full md:w-auto text-sm font-semibold">
@@ -167,7 +167,7 @@
 
                         <div class="flex bg-gray-100 p-1 rounded-xl text-xs font-bold">
                             <button id="view-mode-slider" class="px-3 py-1 rounded-lg bg-white text-rose-600 shadow-sm transition">
-                                ↔️ 滑塊對比
+                                ↔️ 滑條對比
                             </button>
                             <button id="view-mode-result" class="px-3 py-1 rounded-lg text-gray-500 hover:text-gray-800 transition">
                                 🎨 背景合成畫布
@@ -177,6 +177,7 @@
 
                     <div class="relative w-full h-[380px] sm:h-[460px] rounded-2xl overflow-hidden flex items-center justify-center checkerboard-bg border border-gray-200 no-select" id="canvas-container" style="touch-action: none;">
                         
+                        <!-- 滑條對比視圖 -->
                         <div id="slider-view-wrapper" class="absolute inset-0 w-full h-full touch-none">
                             <img id="slider-img-after" class="absolute inset-0 w-full h-full object-contain pointer-events-none z-10" alt="去背後">
                             <div id="slider-before-overlay" class="absolute inset-0 w-full h-full overflow-hidden z-20" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
@@ -190,16 +191,20 @@
                             </div>
                         </div>
 
-                        <canvas id="export-canvas" class="hidden max-w-full max-h-full object-contain z-10 drop-shadow-md cursor-crosshair" title="點擊圖上任意處可手動去除該背景顏色"></canvas>
+                        <!-- 互動合成畫布 -->
+                        <canvas id="export-canvas" class="hidden max-w-full max-h-full object-contain z-10 drop-shadow-md cursor-grab active:cursor-grabbing" title="合成模式：可拖拽移動主體，點擊可精準去除該點背景色彩"></canvas>
                     </div>
 
-                    <p class="text-center text-xs text-gray-400">
-                        💡 提示：按住白線拉桿可左右比對細節；在合成畫布模式下點擊圖上點可精準去除背景色彩。
-                    </p>
+                    <div class="flex flex-wrap items-center justify-between text-xs text-gray-400 gap-2">
+                        <span>💡 提示：按住白線可左右比對細節；合成畫布模式下可用滑鼠/手指移動主體位置。</span>
+                        <button id="btn-auto-center" class="px-2.5 py-1 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg font-bold flex items-center gap-1 transition">
+                            <i data-lucide="align-center" class="w-3.5 h-3.5"></i> 一鍵智慧置中
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 右側控制面板 -->
-                <div class="w-full lg:w-1/3 bg-white rounded-3xl border border-rose-100 shadow-xl p-6 flex flex-col gap-6">
+                <div class="w-full lg:w-1/3 bg-white rounded-3xl border border-rose-100 shadow-xl p-6 flex flex-col gap-5">
                     
                     <h3 class="font-bold text-base text-gray-900 flex items-center gap-2 pb-3 border-b border-gray-100">
                         <i data-lucide="sliders" class="w-5 h-5 text-rose-500"></i>
@@ -224,16 +229,16 @@
                         </label>
                         
                         <div class="grid grid-cols-5 gap-2">
-                            <button class="color-preset active w-full h-10 rounded-xl border border-gray-300 checkerboard-bg transition" data-bg="transparent" title="透明背景"></button>
-                            <button class="color-preset w-full h-10 rounded-xl border border-gray-200 bg-white transition" data-bg="#ffffff" title="純白色"></button>
-                            <button class="color-preset w-full h-10 rounded-xl border border-blue-200 bg-[#438edb] transition" data-bg="#438edb" title="證件照藍"></button>
-                            <button class="color-preset w-full h-10 rounded-xl border border-red-200 bg-[#e71f19] transition" data-bg="#e71f19" title="證件照紅"></button>
-                            <button class="color-preset w-full h-10 rounded-xl border border-pink-200 bg-[#fde2e4] transition" data-bg="#fde2e4" title="柔粉色"></button>
+                            <button class="color-preset active w-full h-9 rounded-xl border border-gray-300 checkerboard-bg transition" data-bg="transparent" title="透明背景"></button>
+                            <button class="color-preset w-full h-9 rounded-xl border border-gray-200 bg-white transition" data-bg="#ffffff" title="純白色"></button>
+                            <button class="color-preset w-full h-9 rounded-xl border border-blue-200 bg-[#438edb] transition" data-bg="#438edb" title="證件照藍"></button>
+                            <button class="color-preset w-full h-9 rounded-xl border border-red-200 bg-[#e71f19] transition" data-bg="#e71f19" title="證件照紅"></button>
+                            <button class="color-preset w-full h-9 rounded-xl border border-pink-200 bg-[#fde2e4] transition" data-bg="#fde2e4" title="柔粉色"></button>
                         </div>
 
                         <div class="flex items-center gap-2 mt-1">
                             <div class="flex-1 flex items-center gap-2 border border-gray-200 rounded-xl p-1.5 bg-gray-50">
-                                <input type="color" id="custom-color-picker" class="w-7 h-7 rounded-lg border-0 cursor-pointer bg-transparent" value="#ffffff">
+                                <input type="color" id="custom-color-picker" class="w-6 h-6 rounded-lg border-0 cursor-pointer bg-transparent" value="#ffffff">
                                 <span class="text-xs font-medium text-gray-600">自訂色</span>
                             </div>
                             
@@ -246,29 +251,41 @@
                     </div>
 
                     <div class="flex flex-col gap-3 pt-2 border-t border-gray-100">
-                        <label class="text-xs font-bold text-gray-600">主體特效</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 bg-gray-50/50 cursor-pointer hover:border-rose-300 transition">
-                                <input type="checkbox" id="toggle-shadow" class="w-4 h-4 accent-rose-500 rounded">
-                                <span class="text-xs font-medium text-gray-700">懸浮商品陰影</span>
+                        <label class="text-xs font-bold text-gray-600">主體特效與微調</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 bg-gray-50/50 cursor-pointer hover:border-rose-300 transition text-xs">
+                                <input type="checkbox" id="toggle-shadow" class="w-3.5 h-3.5 accent-rose-500 rounded">
+                                <span class="font-medium text-gray-700">懸浮陰影</span>
                             </label>
-                            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-gray-200 bg-gray-50/50 cursor-pointer hover:border-rose-300 transition">
-                                <input type="checkbox" id="toggle-stroke" class="w-4 h-4 accent-rose-500 rounded">
-                                <span class="text-xs font-medium text-gray-700">描邊白光圈</span>
+                            <label class="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 bg-gray-50/50 cursor-pointer hover:border-rose-300 transition text-xs">
+                                <input type="checkbox" id="toggle-stroke" class="w-3.5 h-3.5 accent-rose-500 rounded">
+                                <span class="font-medium text-gray-700">描邊白光</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 p-2 rounded-xl border border-gray-200 bg-gray-50/50 cursor-pointer hover:border-rose-300 transition text-xs">
+                                <input type="checkbox" id="toggle-reflection" class="w-3.5 h-3.5 accent-rose-500 rounded">
+                                <span class="font-medium text-gray-700">鏡面倒影</span>
                             </label>
                         </div>
 
-                        <div class="flex flex-col gap-1.5 mt-1">
+                        <div class="flex flex-col gap-1 mt-1">
                             <div class="flex justify-between text-xs text-gray-500">
-                                <span>去背靈敏容差值</span>
+                                <span>主體縮放比例</span>
+                                <span id="scale-val-text">100%</span>
+                            </div>
+                            <input type="range" id="subject-scale-range" min="30" max="150" value="100" class="w-full accent-rose-500 h-1.5 bg-gray-200 rounded-lg cursor-pointer">
+                        </div>
+
+                        <div class="flex flex-col gap-1 mt-1">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>去背容差靈敏度</span>
                                 <span id="tolerance-val-text">35</span>
                             </div>
                             <input type="range" id="tolerance-range" min="10" max="100" value="35" class="w-full accent-rose-500 h-1.5 bg-gray-200 rounded-lg cursor-pointer">
                         </div>
                     </div>
 
-                    <div class="flex flex-col gap-2.5 pt-2 border-t border-gray-100">
-                        <label class="text-xs font-bold text-gray-600">輸出比例</label>
+                    <div class="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                        <label class="text-xs font-bold text-gray-600">輸出尺寸比例</label>
                         <select id="aspect-ratio-select" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold rounded-xl p-2.5 focus:ring-2 focus:ring-rose-400 focus:outline-none">
                             <option value="original">原始比例 (Original)</option>
                             <option value="1:1">1 : 1 (正方形頭像 / 社群)</option>
@@ -277,10 +294,17 @@
                         </select>
                     </div>
 
-                    <button id="btn-download" class="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-extrabold rounded-2xl shadow-lg shadow-rose-200 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                        <i data-lucide="download" class="w-5 h-5"></i>
-                        下載高畫質 PNG 檔
-                    </button>
+                    <div class="flex flex-col gap-2 pt-2">
+                        <button id="btn-download" class="w-full py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-extrabold rounded-2xl shadow-lg shadow-rose-200 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            下載高畫質 PNG 檔
+                        </button>
+                        
+                        <button id="btn-copy-clipboard" class="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-2xl border border-rose-200 transition flex items-center justify-center gap-2 text-xs">
+                            <i data-lucide="copy" class="w-4 h-4"></i>
+                            複製 PNG 到剪貼簿 (Direct Copy)
+                        </button>
+                    </div>
 
                 </div>
 
@@ -377,6 +401,9 @@
         const bgFileInput = document.getElementById('bg-file-input');
         const toggleShadow = document.getElementById('toggle-shadow');
         const toggleStroke = document.getElementById('toggle-stroke');
+        const toggleReflection = document.getElementById('toggle-reflection');
+        const subjectScaleRange = document.getElementById('subject-scale-range');
+        const scaleValText = document.getElementById('scale-val-text');
         const toleranceRange = document.getElementById('tolerance-range');
         const toleranceValText = document.getElementById('tolerance-val-text');
         const aspectRatioSelect = document.getElementById('aspect-ratio-select');
@@ -385,6 +412,8 @@
 
         const btnReupload = document.getElementById('btn-reupload');
         const btnDownload = document.getElementById('btn-download');
+        const btnCopyClipboard = document.getElementById('btn-copy-clipboard');
+        const btnAutoCenter = document.getElementById('btn-auto-center');
         const fileInfoText = document.getElementById('file-info-text');
 
         const tabSingle = document.getElementById('tab-single');
@@ -412,6 +441,10 @@
             bgType: 'transparent',
             shadow: false,
             stroke: false,
+            reflection: false,
+            scale: 1.0,
+            offsetX: 0,
+            offsetY: 0,
             tolerance: 35,
             aspectRatio: 'original',
             viewMode: 'slider'
@@ -590,6 +623,12 @@
                 progressBar.style.width = '100%';
                 progressText.innerText = '100%';
 
+                state.offsetX = 0;
+                state.offsetY = 0;
+                state.scale = 1.0;
+                subjectScaleRange.value = 100;
+                scaleValText.innerText = "100%";
+
                 setTimeout(() => {
                     loadingZone.classList.add('hidden');
                     loadingZone.classList.remove('flex');
@@ -603,8 +642,11 @@
             }
         }
 
-        // 對比拉桿手勢與滑鼠事件
+        // 對比拉桿與主體拖拽手勢
         let isDraggingSlider = false;
+        let isDraggingSubject = false;
+        let dragStartX = 0, dragStartY = 0;
+        let initialOffsetX = 0, initialOffsetY = 0;
         const sliderContainer = document.getElementById('canvas-container');
 
         function updateSliderPosition(clientX) {
@@ -618,37 +660,53 @@
             sliderHandle.style.left = `${percentage}%`;
         }
 
-        function getClientX(e) {
-            if (e.touches && e.touches.length > 0) return e.touches[0].clientX;
-            return e.clientX;
+        function getClientPos(e) {
+            if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            return { x: e.clientX, y: e.clientY };
         }
 
-        function startSliderDrag(e) {
+        function handlePointerStart(e) {
+            const pos = getClientPos(e);
             if (state.viewMode === 'slider') {
                 isDraggingSlider = true;
-                updateSliderPosition(getClientX(e));
+                updateSliderPosition(pos.x);
+            } else if (state.viewMode === 'result') {
+                isDraggingSubject = true;
+                dragStartX = pos.x;
+                dragStartY = pos.y;
+                initialOffsetX = state.offsetX;
+                initialOffsetY = state.offsetY;
             }
         }
 
-        function moveSliderDrag(e) {
+        function handlePointerMove(e) {
+            const pos = getClientPos(e);
             if (isDraggingSlider) {
                 if (e.cancelable) e.preventDefault();
-                updateSliderPosition(getClientX(e));
+                updateSliderPosition(pos.x);
+            } else if (isDraggingSubject) {
+                if (e.cancelable) e.preventDefault();
+                const dx = pos.x - dragStartX;
+                const dy = pos.y - dragStartY;
+                state.offsetX = initialOffsetX + dx;
+                state.offsetY = initialOffsetY + dy;
+                renderCanvas();
             }
         }
 
-        function stopSliderDrag() {
+        function handlePointerEnd() {
             isDraggingSlider = false;
+            isDraggingSubject = false;
         }
 
-        sliderContainer.addEventListener('mousedown', startSliderDrag);
-        window.addEventListener('mousemove', moveSliderDrag);
-        window.addEventListener('mouseup', stopSliderDrag);
+        sliderContainer.addEventListener('mousedown', handlePointerStart);
+        window.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerEnd);
 
-        sliderContainer.addEventListener('touchstart', startSliderDrag, { passive: false });
-        window.addEventListener('touchmove', moveSliderDrag, { passive: false });
-        window.addEventListener('touchend', stopSliderDrag);
-        window.addEventListener('touchcancel', stopSliderDrag);
+        sliderContainer.addEventListener('touchstart', handlePointerStart, { passive: false });
+        window.addEventListener('touchmove', handlePointerMove, { passive: false });
+        window.addEventListener('touchend', handlePointerEnd);
+        window.addEventListener('touchcancel', handlePointerEnd);
 
         viewModeSlider.addEventListener('click', () => {
             state.viewMode = 'slider';
@@ -670,32 +728,6 @@
 
             sliderViewWrapper.classList.add('hidden');
             exportCanvas.classList.remove('hidden');
-            renderCanvas();
-        });
-
-        // 點擊 Canvas 任意處手動消除背景 (魔術棒)
-        exportCanvas.addEventListener('click', async (e) => {
-            if (!currentOriginalImg) return;
-            const rect = exportCanvas.getBoundingClientRect();
-            const scaleX = exportCanvas.width / rect.width;
-            const scaleY = exportCanvas.height / rect.height;
-
-            const x = Math.floor((e.clientX - rect.left) * scaleX);
-            const y = Math.floor((e.clientY - rect.top) * scaleY);
-
-            const tempCtx = exportCanvas.getContext('2d');
-            const pixel = tempCtx.getImageData(x, y, 1, 1).data;
-
-            log(`魔術棒吸管採樣: R:${pixel[0]} G:${pixel[1]} B:${pixel[2]}`);
-            showToast("魔術棒去背", "正在精準消除點選顏色...");
-
-            const blob = await removeBackgroundLocalCanvas(currentOriginalImg, pixel[0], pixel[1], pixel[2]);
-            const cutoutUrl = URL.createObjectURL(blob);
-            currentCutoutImg = new Image();
-            currentCutoutImg.src = cutoutUrl;
-            await currentCutoutImg.decode();
-
-            sliderImgAfter.src = cutoutUrl;
             renderCanvas();
         });
 
@@ -733,39 +765,83 @@
                 ctx.fillRect(0, 0, targetW, targetH);
             }
 
-            const dx = (targetW - origW) / 2;
-            const dy = (targetH - origH) / 2;
+            const drawW = origW * state.scale;
+            const drawH = origH * state.scale;
+            const dx = (targetW - drawW) / 2 + state.offsetX;
+            const dy = (targetH - drawH) / 2 + state.offsetY;
 
+            // 電商鏡面倒影
+            if (state.reflection) {
+                ctx.save();
+                ctx.scale(1, -1);
+                ctx.globalAlpha = 0.25;
+                ctx.drawImage(currentCutoutImg, dx, -dy - (drawH * 2), drawW, drawH);
+                ctx.restore();
+            }
+
+            // 懸浮陰影
             if (state.shadow) {
                 ctx.save();
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
                 ctx.shadowBlur = 25;
                 ctx.shadowOffsetX = 10;
                 ctx.shadowOffsetY = 15;
-                ctx.drawImage(currentCutoutImg, dx, dy, origW, origH);
+                ctx.drawImage(currentCutoutImg, dx, dy, drawW, drawH);
                 ctx.restore();
             }
 
+            // 描邊白光圈
             if (state.stroke) {
                 ctx.save();
-                const strokeSize = Math.max(4, Math.round(origW * 0.015));
+                const strokeSize = Math.max(4, Math.round(drawW * 0.015));
                 for (let angle = 0; angle < 360; angle += 45) {
                     const rad = (angle * Math.PI) / 180;
                     const sx = dx + Math.cos(rad) * strokeSize;
                     const sy = dy + Math.sin(rad) * strokeSize;
-                    ctx.drawImage(currentCutoutImg, sx, sy, origW, origH);
+                    ctx.drawImage(currentCutoutImg, sx, sy, drawW, drawH);
                 }
                 ctx.restore();
             }
 
-            ctx.drawImage(currentCutoutImg, dx, dy, origW, origH);
+            ctx.drawImage(currentCutoutImg, dx, dy, drawW, drawH);
 
-            if (state.bgType !== 'transparent' || state.shadow || state.stroke) {
+            if (state.bgType !== 'transparent' || state.shadow || state.stroke || state.reflection || state.scale !== 1.0 || state.offsetX !== 0 || state.offsetY !== 0) {
                 sliderImgAfter.src = exportCanvas.toDataURL('image/png');
             } else {
                 sliderImgAfter.src = currentCutoutImg.src;
             }
         }
+
+        // 智慧置中與剪貼簿功能
+        btnAutoCenter.addEventListener('click', () => {
+            state.offsetX = 0;
+            state.offsetY = 0;
+            state.scale = 1.0;
+            subjectScaleRange.value = 100;
+            scaleValText.innerText = "100%";
+            renderCanvas();
+            showToast("智慧置中", "已成功校正主體置中與原始大小！");
+        });
+
+        btnCopyClipboard.addEventListener('click', async () => {
+            renderCanvas();
+            exportCanvas.toBlob(async (blob) => {
+                if (!blob) return;
+                try {
+                    if (navigator.clipboard && window.ClipboardItem) {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob })
+                        ]);
+                        showToast("複製成功", "已將去背 PNG 圖片複製到剪貼簿！可直接 Ctrl+V 貼上。");
+                    } else {
+                        showToast("複製提示", "您的瀏覽器不支援直接複製圖片，請使用下載按鈕。");
+                    }
+                } catch (err) {
+                    log("複製剪貼簿失敗: " + err.message);
+                    showToast("複製提示", "請改用「下載高畫質 PNG」按鈕儲存。");
+                }
+            }, 'image/png');
+        });
 
         document.querySelectorAll('.color-preset').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -806,6 +882,14 @@
 
         toggleShadow.addEventListener('change', (e) => { state.shadow = e.target.checked; renderCanvas(); });
         toggleStroke.addEventListener('change', (e) => { state.stroke = e.target.checked; renderCanvas(); });
+        toggleReflection.addEventListener('change', (e) => { state.reflection = e.target.checked; renderCanvas(); });
+
+        subjectScaleRange.addEventListener('input', (e) => {
+            state.scale = parseInt(e.target.value) / 100;
+            scaleValText.innerText = `${e.target.value}%`;
+            renderCanvas();
+        });
+
         toleranceRange.addEventListener('input', async (e) => {
             state.tolerance = parseInt(e.target.value);
             toleranceValText.innerText = state.tolerance;
