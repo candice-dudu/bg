@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>喵喵一鍵去背屋 Pro - 免費、本機 AI 圖片去背與影像創作工具</title>
+    <title>喵喵一鍵去背屋</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons CDN -->
@@ -178,13 +178,13 @@
 
                     <div class="relative w-full h-[380px] sm:h-[460px] rounded-2xl overflow-hidden flex items-center justify-center checkerboard-bg border border-gray-200 no-select" id="canvas-container">
                         
-                        <div id="slider-view-wrapper" class="absolute inset-0 w-full h-full">
+                        <div id="slider-view-wrapper" class="absolute inset-0 w-full h-full touch-none">
                             <img id="slider-img-after" class="absolute inset-0 w-full h-full object-contain pointer-events-none z-10" alt="去背後">
                             <div id="slider-before-overlay" class="absolute inset-0 w-full h-full overflow-hidden z-20" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
                                 <img id="slider-img-before" class="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="去背前原圖">
                             </div>
 
-                            <div id="slider-handle" class="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize z-30 shadow-2xl flex items-center justify-center" style="left: 50%;">
+                            <div id="slider-handle" class="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize z-30 shadow-2xl flex items-center justify-center touch-none" style="left: 50%;">
                                 <div class="w-8 h-8 bg-white text-rose-500 rounded-full shadow-lg border border-rose-100 flex items-center justify-center text-xs font-bold">
                                     <i data-lucide="chevrons-left-right" class="w-4 h-4"></i>
                                 </div>
@@ -563,34 +563,7 @@
                 } catch (err) {
                     log(`AI 模組受阻，自動啟動備援本機引擎: ${err.message || err}`);
                     showToast("切換備援引擎", "網路阻擋了 AI 模組，已自動切換至本機 Smart Canvas 引擎！");
-                    
-                    currentEngineTag.innerText = "本機 Smart Canvas";
-                    currentEngineTag.className = "text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full";
-                    
-                    progressBar.style.width = '80%';
-                    resultBlob = await removeBackgroundLocalCanvas(currentOriginalImg);
-                }
-            }
-
-            progressBar.style.width = '100%';
-            progressText.innerText = '100%';
-
-            const cutoutUrl = URL.createObjectURL(resultBlob);
-            currentCutoutImg = new Image();
-            currentCutoutImg.src = cutoutUrl;
-            await currentCutoutImg.decode();
-
-            sliderImgAfter.src = cutoutUrl;
-
-            loadingZone.classList.add('hidden');
-            loadingZone.classList.remove('flex');
-            resultZone.classList.remove('hidden');
-            resultZone.classList.add('flex');
-
-            renderCanvas();
-        }
-
-        // 對比拉桿手勢
+        // 對比拉桿手勢（支援電腦滑鼠與手機觸控）
         let isDraggingSlider = false;
         const sliderContainer = document.getElementById('canvas-container');
 
@@ -605,15 +578,42 @@
             sliderHandle.style.left = `${percentage}%`;
         }
 
-        sliderContainer.addEventListener('mousedown', (e) => {
+        // 取得 X 座標（相容滑鼠與觸控）
+        function getClientX(e) {
+            if (e.touches && e.touches.length > 0) {
+                return e.touches[0].clientX;
+            }
+            return e.clientX;
+        }
+
+        function startSliderDrag(e) {
             if (state.viewMode === 'slider') {
                 isDraggingSlider = true;
-                updateSliderPosition(e.clientX);
+                updateSliderPosition(getClientX(e));
             }
-        });
+        }
 
-        window.addEventListener('mousemove', (e) => { if (isDraggingSlider) updateSliderPosition(e.clientX); });
-        window.addEventListener('mouseup', () => { isDraggingSlider = false; });
+        function moveSliderDrag(e) {
+            if (isDraggingSlider) {
+                if (e.cancelable) e.preventDefault(); // 阻止手機滑動時頁面跟著上下滾動
+                updateSliderPosition(getClientX(e));
+            }
+        }
+
+        function stopSliderDrag() {
+            isDraggingSlider = false;
+        }
+
+        // 滑鼠事件
+        sliderContainer.addEventListener('mousedown', startSliderDrag);
+        window.addEventListener('mousemove', moveSliderDrag);
+        window.addEventListener('mouseup', stopSliderDrag);
+
+        // 觸控手勢事件（手機 / 平板）
+        sliderContainer.addEventListener('touchstart', startSliderDrag, { passive: false });
+        window.addEventListener('touchmove', moveSliderDrag, { passive: false });
+        window.addEventListener('touchend', stopSliderDrag);
+        window.addEventListener('touchcancel', stopSliderDrag);
 
         viewModeSlider.addEventListener('click', () => {
             state.viewMode = 'slider';
