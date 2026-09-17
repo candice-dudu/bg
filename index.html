@@ -356,8 +356,12 @@
 
     <!-- 核心 JS 模組 -->
     <script type="module">
+        // 採用 IMG.LY 官方模組，並設置專屬 staticimgly CDN 模型路徑
         import imglyRemoveBackground, { removeBackground as removeBgNamed } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
         const removeBackground = imglyRemoveBackground || removeBgNamed;
+
+        // 官方 staticimgly CDN 模型靜態資源路徑 (避免 jsdelivr 的 onnx/wasm 檔標頭問題)
+        const MODEL_PUBLIC_PATH = 'https://staticimgly.com/@imgly/background-removal-data/1.5.5/dist/';
 
         // DOM 元素引用
         const tabSingle = document.getElementById('tab-single');
@@ -483,17 +487,20 @@
             else loadingHint.classList.remove('hidden');
 
             try {
-                // 呼叫 WASM 引擎
+                // 呼叫 WASM 引擎 (使用官方 staticimgly CDN)
                 const imageBlob = await removeBackground(file, {
-                    publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.5.5/dist/',
+                    publicPath: MODEL_PUBLIC_PATH,
                     progress: (key, current, total) => {
                         let percent = 0;
                         if (total && total > 0) percent = Math.round((current / total) * 100);
                         progressBar.style.width = `${percent}%`;
                         progressText.innerText = `${percent}%`;
                         
-                        if (typeof key === 'string' && key.includes('compute')) {
+                        if (typeof key === 'string' && (key.includes('compute') || key.includes('process'))) {
                             isModelCached = true;
+                            loadingStatus.innerText = `正在運算影像邊緣去背... (${percent}%)`;
+                        } else {
+                            loadingStatus.innerText = `下載 AI 模型組件中... (${percent}%)`;
                         }
                     }
                 });
@@ -516,8 +523,8 @@
                 renderCanvas();
 
             } catch (err) {
-                console.error(err);
-                showError("去背失敗！可能是記憶體不足或圖片格式異常。");
+                console.error("AI 去背失敗詳情:", err);
+                showError(`去背失敗：${err.message || '模型下載或 WASM 運算被阻擋，請重新整理頁面再試'}`);
                 resetSingleView();
             }
         }
@@ -802,7 +809,7 @@
 
                 try {
                     const blob = await removeBackground(item.file, {
-                        publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.5.5/dist/'
+                        publicPath: MODEL_PUBLIC_PATH
                     });
                     item.processedBlob = blob;
                     item.status = 'done';
